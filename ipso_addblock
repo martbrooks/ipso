@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use lib './lib';
+use Ipso;
+use NetAddr::IP;
+use Switch;
+
+my $newblock=$ARGV[0];
+chomp($newblock);
+$newblock=~s/\s+//g;
+my $note=$ARGV[1];
+
+unless ($newblock && $note){
+	print "$0 <IP block> \"<Note>\"\n\n";
+	print "Example: $0 192.168.0.0/24 \"ACME Widgets internal LAN.\"\n";
+	exit;
+}
+
+if (is_ipv4_cidr($newblock)==0 && is_ipv6_cidr($newblock)==0){
+	print "Error: Invalid network block.\n";
+	exit;
+}
+
+addIPBlock($newblock,$note);

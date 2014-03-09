@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use lib './lib';
+use Ipso;
+use Text::ASCIITable;
+
+my %blocks=getBlockInfo();  
+my $table = Text::ASCIITable->new({ headingText => 'Available IP Blocks' });
+$table->setCols('ID','Block','Allocations','Used (%)','Free (%)','Notes');
+foreach my $this (sort keys %blocks){
+		my $block=$blocks{$this}{ipblock};
+		my $allocations=$blocks{$this}{allocations} || 0;
+		my $maxips=$blocks{$this}{maxips};
+		my $used=$blocks{$this}{allocated} || 0;
+		my $note=$blocks{$this}{note};
+		my $free=$maxips-$used;
+		my $usedpcent='0';
+		if ($used!=0){
+				$usedpcent=sprintf("%.3g",$used/$maxips*100);
+		}
+		my $freepcent=sprintf("%.3g",100-$usedpcent);
+		$table->addRow($this,$block,$allocations,"$used ($usedpcent%)","$free ($freepcent%)",$note);
+}
+print $table;
