@@ -18,7 +18,7 @@ foreach my $this (sort keys %blocks){
 		my $free=$maxips-$used;
 		my $usedpcent='0';
 		if ($used!=0){
-				$usedpcent=sprintf("%.3g",$used/$maxips*100);
+			$usedpcent=sprintf("%.3g",$used/$maxips*100);
 		}
 		my $freepcent=sprintf("%.3g",100-$usedpcent);
 		$table->addRow($this,$block,$allocations,"$used ($usedpcent%)","$free ($freepcent%)",$note);

@@ -4,8 +4,6 @@ use strict;
 use warnings;
 use lib './lib';
 use Ipso;
-use NetAddr::IP;
-use Switch;
 
 my $newblock=$ARGV[0];
 chomp($newblock);

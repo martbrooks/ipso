@@ -73,11 +73,11 @@ sub addIPBlock{
 	my $note=shift;
 	my $dbh=dbconnect();
 	my $overlap=handle_simple_select($dbh,"SELECT ipblock FROM ipblocks WHERE '$newblock' <<= ipblock OR '$newblock' >>= ipblock");
-	my $overlapcount=scalar @{$overlap};
 	my @overlaps=();
 	foreach my $ipblock (@{$overlap}){
 		push @overlaps,$ipblock->[0];
 	}
+	my $overlapcount=scalar @overlaps;
 	if ($overlapcount>0){
 		print "Error: IP block $newblock overlaps $overlapcount existing IP block";
 		if ($overlapcount>1){
