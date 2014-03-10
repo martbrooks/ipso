@@ -10,7 +10,7 @@ use Switch;
 
 my ($opt,$usage)=describe_options("%c  %o",
 	['Action:'],
-		["action"=>hidden=>{required=>1,one_of=>[
+		["action"=>hidden=>{one_of=>[
 			[ "add|a"    => "Add an IPv4 or IPv6 network block."],
 			[ "list|l"   => "List network blocks present."],
 			[ "delete|d" => "Delete a network block."],
@@ -19,7 +19,9 @@ my ($opt,$usage)=describe_options("%c  %o",
 	['Parameters:'],
 		['block|b=s' => 'An IPv4 or IPv6 network block in CIDR format.'],
 		['note|n=s'  => 'Some descriptive text for the block.'],
-		['help'      => 'Print help and usage.'],
+	[],
+	['Other:'],
+		['help|h' => 'Print help and usage.'],
 	[],
 	['Examples:'],
 		["$0 -a -b 192.168.0.0/16 -n 'Some RFC1918 space.'"],
@@ -38,6 +40,7 @@ switch ($action){
 	case 'add'    { addblock();    }
 	case 'list'   { listblocks();  }
 	case 'delete' { deleteblock(); }
+	default       { print "Error: Unknown or no action requested.\n"; exit; }
 }
 
 sub addblock{
