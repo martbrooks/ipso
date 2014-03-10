@@ -29,6 +29,12 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trigger_ipblock_family BEFORE INSERT OR UPDATE OF ipblock ON ipblocks FOR EACH ROW EXECUTE PROCEDURE update_ip_block_family();
 
+CREATE OR REPLACE VIEW ipblock_allocations AS
+	SELECT ipallocations.blockid,allocid,ipblocks.ipblock,firstip,firstip+ipcount,ipcount,ipallocations.note
+	FROM ipblocks,ipallocations
+	WHERE ipallocations.blockid=ipblocks.blockid
+	ORDER BY blockid ASC;
+
 INSERT INTO ipblocks (ipblock,note) VALUES ('192.168.0.0/24','Part of RFC1918');
 INSERT INTO ipblocks (ipblock,note) VALUES ('192.168.1.0/24','Part of RFC1918');
 INSERT INTO ipblocks (ipblock,note) VALUES ('10.0.0.0/8','Also part of RFC1918');
