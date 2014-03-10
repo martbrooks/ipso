@@ -93,7 +93,7 @@ sub addIPBlock{
 sub getAllocationInfo{
 	my %allocinfo=();
 	my $block=shift;
-	my $sql='SELECT allocid,ipblock,firstip,lastip,ipcount,note FROM ipblock_allocations';
+	my $sql='SELECT allocid,ipblock,firstip,lastip,ipcount,used,note FROM ipblock_allocations';
 	if (is_ipv4_cidr($block) || is_ipv6_cidr($block)){
 		$sql.=" WHERE ipblock = '$block'";
 	} else {
@@ -108,7 +108,8 @@ sub getAllocationInfo{
 		$allocinfo{$allocid}{firstip}=$thisalloc->[2];
 		$allocinfo{$allocid}{lastip}=$thisalloc->[3];
 		$allocinfo{$allocid}{ipcount}=$thisalloc->[4];
-		$allocinfo{$allocid}{note}=$thisalloc->[5];
+		$allocinfo{$allocid}{used}=$thisalloc->[5];
+		$allocinfo{$allocid}{note}=$thisalloc->[6];
 	}
 	$dbh->disconnect;
 	if (scalar keys %allocinfo == 0){
