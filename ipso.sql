@@ -1,3 +1,5 @@
+BEGIN;
+
 DROP TABLE IF EXISTS ipblocks CASCADE;
 DROP TABLE IF EXISTS ipallocations CASCADE;
 DROP TABLE IF EXISTS hosts CASCADE;
@@ -8,7 +10,9 @@ CREATE TABLE IF NOT EXISTS ipblocks (
 	blockid serial primary key,
 	ipblock cidr NOT NULL,
 	ipblockfamily int,
-	note varchar
+	note varchar,
+	created timestamp with time zone default now(),
+	changed timestamp with time zone default now()
 );
 
 CREATE TABLE IF NOT EXISTS ipallocations (
@@ -16,7 +20,9 @@ CREATE TABLE IF NOT EXISTS ipallocations (
 	blockid bigint references ipblocks (blockid) NOT NULL,
 	firstip inet NOT NULL,
 	ipcount bigint NOT NULL,
-	note varchar
+	note varchar,
+	created timestamp with time zone default now(),
+	changed timestamp with time zone default now()
 );
 
 CREATE TABLE IF NOT EXISTS hosts (
@@ -25,7 +31,9 @@ CREATE TABLE IF NOT EXISTS hosts (
 	allocid BIGINT REFERENCES ipallocations (allocid) NOT NULL,
 	ip INET NOT NULL,
 	hostname VARCHAR NOT NULL,
-	note VARCHAR
+	note VARCHAR,
+	created timestamp with time zone default now(),
+	changed timestamp with time zone default now()
 );
 
 DROP FUNCTION IF EXISTS update_ip_block_family();
@@ -37,7 +45,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_ipblock_family BEFORE INSERT OR UPDATE OF ipblock ON ipblocks FOR EACH ROW EXECUTE PROCEDURE update_ip_block_family();
+DROP FUNCTION IF EXISTS update_last_changed();
+CREATE FUNCTION update_last_changed() RETURNS TRIGGER AS
+$$ 
+BEGIN
+    NEW.changed:=now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_ipblocks_family BEFORE INSERT OR UPDATE OF ipblock ON ipblocks FOR EACH ROW EXECUTE PROCEDURE update_ip_block_family();
+CREATE TRIGGER ipblocks_changed BEFORE INSERT OR UPDATE OF ipblock,note ON ipblocks FOR EACH ROW EXECUTE PROCEDURE update_last_changed();
+CREATE TRIGGER ipallocations_changed BEFORE INSERT OR UPDATE OF firstip,ipcount,note ON ipallocations FOR EACH ROW EXECUTE PROCEDURE update_last_changed();
+CREATE TRIGGER hosts_changed BEFORE INSERT OR UPDATE OF ip,hostname,note ON hosts FOR EACH ROW EXECUTE PROCEDURE update_last_changed();
 
 CREATE OR REPLACE VIEW ipblock_allocations AS
 	SELECT ipallocations.blockid, ipallocations.allocid, ipblocks.ipblock, ipallocations.firstip, ipallocations.firstip + ipallocations.ipcount AS lastip,
@@ -63,3 +83,5 @@ INSERT INTO hosts (blockid,allocid,ip,hostname,note) VALUES (3,5,'10.119.48.20',
 INSERT INTO hosts (blockid,allocid,ip,hostname,note) VALUES (3,5,'10.119.48.21','office-29hc','29HC office 8 port switch');
 INSERT INTO hosts (blockid,allocid,ip,hostname,note) VALUES (3,5,'10.119.48.22','media-29hc','29HC media room 8 port switch');
 INSERT INTO hosts (blockid,allocid,ip,hostname,note) VALUES (3,5,'10.119.48.23','bedroom-29hc','29HC bedroom 8 port switch');
+
+COMMIT;
