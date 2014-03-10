@@ -1,0 +1,82 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use lib './lib';
+use Ipso;
+use Getopt::Long::Descriptive;
+use Text::ASCIITable;
+use Switch;
+
+my ($opt,$usage)=describe_options("%c  %o",
+	['Action:'],
+		["action"=>hidden=>{required=>1,one_of=>[
+			[ "add|a"    => "Add an IPv4 or IPv6 network block."],
+			[ "list|l"   => "List network blocks present."],
+			[ "delete|d" => "Delete a network block."],
+		]}],
+	[],
+	['Parameters:'],
+		['block|b=s' => 'An IPv4 or IPv6 network block in CIDR format.'],
+		['note|n=s'  => 'Some descriptive text for the block.'],
+		['help'      => 'Print help and usage.'],
+	[],
+	['Examples:'],
+		["$0 -a -b 192.168.0.0/16 -n 'Some RFC1918 space.'"],
+		["$0 --add --block dead:beef::/64 --note 'An IPv6 block.'"],
+		["$0 -l"],
+	[],
+);
+
+print($usage->text), exit if $opt->help;
+
+my $action=$opt->action;
+my $block=$opt->block || '';
+my $note=$opt->note || '';
+
+switch ($action){
+	case 'add'    { addblock();    }
+	case 'list'   { listblocks();  }
+	case 'delete' { deleteblock(); }
+}
+
+sub addblock{
+	if ($block eq ''){
+		print "Error: No network block supplied.\n";
+		exit;
+	}
+	unless (is_ipv4_cidr($block) || is_ipv6_cidr($block)){
+		print "Error: Invalid network block.\n";
+		exit;
+	}
+	if ($note eq ''){
+		print "Error: No descriptive text supplied.\n";
+	}
+	addIPBlock($block,$note);
+}
+
+sub listblocks{
+	my %blocks=getBlockInfo();
+	my $table = Text::ASCIITable->new({ headingText => 'Available IP Blocks' });
+	$table->setCols('ID','Block','Allocations','Used (%)','Free (%)','Notes');
+	foreach my $this (sort keys %blocks){
+		my $block=$blocks{$this}{ipblock};
+		my $allocations=$blocks{$this}{allocations} || 0;
+		my $maxips=$blocks{$this}{maxips};
+		my $used=$blocks{$this}{allocated} || 0;
+		my $note=$blocks{$this}{note};
+		my $free=$maxips-$used;
+		my $usedpcent='0';
+		if ($used!=0){
+			$usedpcent=sprintf("%.3g",$used/$maxips*100);
+		}
+		my $freepcent=sprintf("%.3g",100-$usedpcent);
+		$table->addRow($this,$block,$allocations,"$used ($usedpcent%)","$free ($freepcent%)",$note);
+	}
+	print $table;
+}
+
+
+sub deleteblock{
+	print "Not implemented yet.\n";
+}
