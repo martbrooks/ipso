@@ -35,7 +35,7 @@ If you're using Debian or Ubuntu, install the following packages:
 
 You may then be able to do the following:
 
-martin@molly:~/ipso$ ./ipso_listblocks
+martin@molly:~/ipso$ ./ipso_block -l
 .---------------------------------------------------------------------------------------------------------------------.
 |                                                 Available IP Blocks                                                 |
 +----+------------------------+-------------+--------------------+-----------------------------+----------------------+
