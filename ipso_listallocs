@@ -1,0 +1,25 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use lib './lib';
+use Ipso;
+use Text::ASCIITable;
+use Data::Dumper;
+
+my $block=$ARGV[0];
+my ($ipblock,%allocs)=getAllocationInfo($block);
+my $family=4;
+if (is_ipv6_cidr($ipblock)){
+	$family=6;
+}
+my $table = Text::ASCIITable->new({ headingText => "Allocations in IPv$family Block $ipblock" });
+$table->setCols('Alloc ID','Range','IP Count','Notes');
+foreach my $thisalloc (sort keys %allocs){
+	my $ipcount=$allocs{$thisalloc}{ipcount};
+	my $firstip=$allocs{$thisalloc}{firstip};
+	my $lastip=$allocs{$thisalloc}{lastip};
+	my $note=$allocs{$thisalloc}{note};
+	$table->addRow($thisalloc,"$firstip - $lastip",$ipcount,$note);
+}
+print $table;
