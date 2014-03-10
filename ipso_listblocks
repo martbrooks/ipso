@@ -6,7 +6,7 @@ use lib './lib';
 use Ipso;
 use Text::ASCIITable;
 
-my %blocks=getBlockInfo();  
+my %blocks=getBlockInfo();
 my $table = Text::ASCIITable->new({ headingText => 'Available IP Blocks' });
 $table->setCols('ID','Block','Allocations','Used (%)','Free (%)','Notes');
 foreach my $this (sort keys %blocks){

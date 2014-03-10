@@ -6,8 +6,22 @@ use lib './lib';
 use Ipso;
 use Text::ASCIITable;
 use Data::Dumper;
+use Getopt::Long::Descriptive;
 
-my $block=$ARGV[0];
+my ($opt,$usage)=describe_options("%c  %o",
+	['Parameters:'],
+		['block|b=s' => 'Specify IP CIDR range or IP block ID to list.', {required=>1}],
+		['help'      => 'Print help and usage.'],
+	[],
+	['Examples:'],
+		["$0 -b 192.168.0.0/16"],
+		["$0 --block 3"],
+	[],
+);
+
+print($usage->text), exit if $opt->help;
+
+my $block=$opt->block;
 my ($ipblock,%allocs)=getAllocationInfo($block);
 my $family=4;
 if (is_ipv6_cidr($ipblock)){
