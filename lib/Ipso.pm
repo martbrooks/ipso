@@ -1,7 +1,6 @@
 use strict;
 use warnings;
 use DBD::Pg;
-use YAML::XS qw(LoadFile);
 use Data::Dumper;
 use Switch;
 use Regexp::Common qw /net/;
