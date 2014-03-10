@@ -28,9 +28,7 @@ If you're using Debian or Ubuntu, install the following packages:
     libgetopt-long-descriptive-perl
     libnetaddr-ip-perl
     libregexp-common-net-cidr-perl
-    libregexp-common-net-cidr-perl
     libregexp-common-perl
-    libregexp-ipv6-perl
     libregexp-ipv6-perl
     libswitch-perl
     libtext-asciitable-perl
