@@ -30,7 +30,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trigger_ipblock_family BEFORE INSERT OR UPDATE OF ipblock ON ipblocks FOR EACH ROW EXECUTE PROCEDURE update_ip_block_family();
 
 CREATE OR REPLACE VIEW ipblock_allocations AS
-	SELECT ipallocations.blockid,allocid,ipblocks.ipblock,firstip,firstip+ipcount,ipcount,ipallocations.note
+	SELECT ipallocations.blockid,allocid,ipblocks.ipblock,firstip,firstip+ipcount AS lastip,ipcount,ipallocations.note
 	FROM ipblocks,ipallocations
 	WHERE ipallocations.blockid=ipblocks.blockid
 	ORDER BY blockid ASC;

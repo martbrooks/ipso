@@ -90,6 +90,35 @@ sub addIPBlock{
 	print "Block added.\n";
 }
 
+sub getAllocationInfo{
+	my %allocinfo=();
+	my $block=shift;
+	my $sql='SELECT allocid,ipblock,firstip,lastip,ipcount,note FROM ipblock_allocations';
+	if (is_ipv4_cidr($block) || is_ipv6_cidr($block)){
+		$sql.=" WHERE ipblock = '$block'";
+	} else {
+		$sql.=" WHERE blockid = '$block'";
+	}
+	my $dbh=dbconnect();
+	my $allocations=handle_simple_select($dbh,$sql);
+	my $ipblock='';
+	foreach my $thisalloc (@{$allocations}){
+		my $allocid=$thisalloc->[0];
+		$ipblock=$thisalloc->[1];
+		$allocinfo{$allocid}{firstip}=$thisalloc->[2];
+		$allocinfo{$allocid}{lastip}=$thisalloc->[3];
+		$allocinfo{$allocid}{ipcount}=$thisalloc->[4];
+		$allocinfo{$allocid}{note}=$thisalloc->[5];
+	}
+	$dbh->disconnect;
+	if (scalar keys %allocinfo == 0){
+		print "No allocations found.\n";
+		exit;
+	}
+	return ($ipblock,%allocinfo);
+}
+
+
 sub is_ipv4_address{
 	my $ip=shift;
 	if ($ip =~ $RE{net}{IPv4}){
