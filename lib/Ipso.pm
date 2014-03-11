@@ -14,67 +14,47 @@ sub dbconnect{
 	my $options='';
 	my $username='ipso';
 	my $password='ipso';
-	my $dbh = DBI->connect("dbi:Pg:dbname=$dbname;host=$host;port=$port",$username,$password
-		# {AutoCommit => 0, RaiseError => 1, PrintError => 0}
+	my $dbh = DBI->connect("dbi:Pg:dbname=$dbname;host=$host;port=$port",$username,$password,
+		{AutoCommit => 1, RaiseError => 1, PrintError => 0}
 	);
 	return $dbh;
 }
 
-sub handle_simple_select{
-	my $dbh=shift;
-	my $sql=shift;
+sub fetchrows{
+	my ($dbh,$sql,$key)=@_;
 	my $sth = $dbh->prepare("$sql");
-	if ( !defined $sth ) {
-		die "Cannot prepare statement: $DBI::errstr\n";
-	}
 	$sth->execute;
-	my $rows=$sth->fetchall_arrayref();
-	return $rows;
-}
-
-sub handle_simple_insert{
-	my $dbh=shift;
-	my $sql=shift;
-	my $sth = $dbh->prepare("$sql");
-	if ( !defined $sth ) {
-		die "Cannot prepare statement: $DBI::errstr\n";
-	}
-	$sth->execute;
+	my $tmp=$sth->fetchall_hashref($key);
+	return %{$tmp};
 }
 
 sub getBlockInfo{
-	my %ipblockinfo=();
 	my $dbh=dbconnect();
-	my $ipblocks=handle_simple_select($dbh,'SELECT blockid,ipblock,ipblockfamily,note FROM ipblocks');
-	foreach my $thisblock (@{$ipblocks}){
-		my $blockid=$thisblock->[0];
-		$ipblockinfo{$blockid}{ipblock}=$thisblock->[1];
-		$ipblockinfo{$blockid}{ipfamily}=$thisblock->[2];
-		my ($block,$mask)=split/\//,$ipblockinfo{$blockid}{ipblock};
-		switch ($ipblockinfo{$blockid}{ipfamily}) {
-			case 4 { $ipblockinfo{$blockid}{maxips}=2**(32-$mask);  }
-			case 6 { $ipblockinfo{$blockid}{maxips}=2**(128-$mask); }
+	my %ipblocks=fetchrows($dbh,'SELECT blockid,ipblock,ipblockfamily,note,EXTRACT(EPOCH FROM now()-changed) as age FROM ipblocks',1);
+	foreach my $record (keys %ipblocks){
+		my ($block,$mask)=split/\//,$ipblocks{$record}{ipblock};
+		switch ($ipblocks{$record}{ipblockfamily}) {
+			case 4 { $ipblocks{$record}{maxips}=2**(32-$mask);  }
+			case 6 { $ipblocks{$record}{maxips}=2**(128-$mask); }
 		}
-		$ipblockinfo{$blockid}{note}=$thisblock->[3];
 	}
-	my $ipallocations=handle_simple_select($dbh,'SELECT ipblocks.blockid,COUNT(ipcount),SUM(ipcount) FROM ipblocks,ipallocations WHERE ipblocks.blockid=ipallocations.blockid GROUP BY ipblocks.blockid ORDER BY ipblocks.blockid');
-	foreach my $thisallocation (@{$ipallocations}){
-		my $blockid=$thisallocation->[0];
-		$ipblockinfo{$blockid}{allocations}=$thisallocation->[1];
-		$ipblockinfo{$blockid}{allocated}=$thisallocation->[2];
+	my %ipallocations=fetchrows($dbh,'SELECT ipblocks.blockid,COUNT(ipcount) AS allocations,SUM(ipcount) AS allocated FROM ipblocks,ipallocations WHERE ipblocks.blockid=ipallocations.blockid GROUP BY ipblocks.blockid',1);
+	foreach my $record (keys %ipallocations){
+		my $blockid=$ipallocations{$record}{blockid};
+		$ipblocks{$blockid}{allocations}=$ipallocations{$record}{allocations};
+		$ipblocks{$blockid}{allocated}=$ipallocations{$record}{allocated};
 	}
 	$dbh->disconnect;
-	return %ipblockinfo;
+	return %ipblocks;
 }
 
 sub addIPBlock{
-	my $newblock=shift;
-	my $note=shift;
+	my ($newblock,$note)=@_;
 	my $dbh=dbconnect();
-	my $overlap=handle_simple_select($dbh,"SELECT ipblock FROM ipblocks WHERE '$newblock' <<= ipblock OR '$newblock' >>= ipblock");
+	my %overlap=fetchrows($dbh,"SELECT ipblock FROM ipblocks WHERE '$newblock' <<= ipblock OR '$newblock' >>= ipblock",1);
 	my @overlaps=();
-	foreach my $ipblock (@{$overlap}){
-		push @overlaps,$ipblock->[0];
+	foreach my $ipblock (keys %overlap){
+		push @overlaps,$ipblock;
 	}
 	my $overlapcount=scalar @overlaps;
 	if ($overlapcount>0){
@@ -85,7 +65,8 @@ sub addIPBlock{
 		print ": " . join (", ",@overlaps) . "\n";
 		exit;
 	}
-	handle_simple_insert($dbh,"INSERT INTO ipblocks (ipblock,note) VALUES ('$newblock','$note')");
+	$dbh->do("INSERT INTO ipblocks (ipblock,note) VALUES ('$newblock','$note')");
+	$dbh->disconnect;
 	print "Block added.\n";
 }
 
@@ -97,27 +78,15 @@ sub getAllocationInfo{
 		$sql.=" WHERE ipblock = '$block'";
 	} elsif ($block ne 'all'){
 		$sql.=" WHERE blockid = '$block'";
-	} else {
-		$sql.=' ORDER BY allocid ASC';
 	}
 	my $dbh=dbconnect();
-	my $allocations=handle_simple_select($dbh,$sql);
-	my $ipblock='';
-	foreach my $thisalloc (@{$allocations}){
-		my $allocid=$thisalloc->[0];
-		$ipblock=$thisalloc->[1];
-		$allocinfo{$allocid}{firstip}=$thisalloc->[2];
-		$allocinfo{$allocid}{lastip}=$thisalloc->[3];
-		$allocinfo{$allocid}{ipcount}=$thisalloc->[4];
-		$allocinfo{$allocid}{used}=$thisalloc->[5];
-		$allocinfo{$allocid}{note}=$thisalloc->[6];
-	}
+	my %allocations=fetchrows($dbh,$sql,1);
 	$dbh->disconnect;
-	if (scalar keys %allocinfo == 0){
+	if (scalar keys %allocations == 0){
 		print "No allocations found.\n";
 		exit;
 	}
-	return ($ipblock,%allocinfo);
+	return %allocations;
 }
 
 

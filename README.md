@@ -32,6 +32,7 @@ If you're using Debian or Ubuntu, install the following packages:
     libregexp-ipv6-perl
     libswitch-perl
     libtext-asciitable-perl
+    libtime-duration-perl
 
 You may then be able to do the following:
 

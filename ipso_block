@@ -6,6 +6,7 @@ use lib './lib';
 use Ipso;
 use Getopt::Long::Descriptive;
 use Text::ASCIITable;
+use Time::Duration;
 use Switch;
 
 my ($opt,$usage)=describe_options("%c  %o",
@@ -61,24 +62,24 @@ sub addblock{
 sub listblocks{
 	my %blocks=getBlockInfo();
 	my $table = Text::ASCIITable->new({ headingText => 'Available IP Blocks' });
-	$table->setCols('ID','Block','Allocations','Used (%)','Free (%)','Notes');
-	foreach my $this (sort keys %blocks){
+	$table->setCols('ID','Block','Allocations','Used (%)','Free (%)','Notes','Last updated about...');
+	foreach my $this (sort {$a<=>$b} keys %blocks){
 		my $block=$blocks{$this}{ipblock};
 		my $allocations=$blocks{$this}{allocations} || 0;
 		my $maxips=$blocks{$this}{maxips};
 		my $used=$blocks{$this}{allocated} || 0;
 		my $note=$blocks{$this}{note};
+		my $age=ago($blocks{$this}{age},1);
 		my $free=$maxips-$used;
 		my $usedpcent='0';
 		if ($used!=0){
 			$usedpcent=sprintf("%.3g",$used/$maxips*100);
 		}
 		my $freepcent=sprintf("%.3g",100-$usedpcent);
-		$table->addRow($this,$block,$allocations,"$used ($usedpcent%)","$free ($freepcent%)",$note);
+		$table->addRow($this,$block,$allocations,"$used ($usedpcent%)","$free ($freepcent%)",$note,$age);
 	}
 	print $table;
 }
-
 
 sub deleteblock{
 	print "Not implemented yet.\n";
