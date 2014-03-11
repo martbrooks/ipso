@@ -95,8 +95,10 @@ sub getAllocationInfo{
 	my $sql='SELECT allocid,ipblock,firstip,lastip,ipcount,used,note FROM ipblock_allocations';
 	if (is_ipv4_cidr($block) || is_ipv6_cidr($block)){
 		$sql.=" WHERE ipblock = '$block'";
-	} else {
+	} elsif ($block ne 'all'){
 		$sql.=" WHERE blockid = '$block'";
+	} else {
+		$sql.=' ORDER BY allocid ASC';
 	}
 	my $dbh=dbconnect();
 	my $allocations=handle_simple_select($dbh,$sql);

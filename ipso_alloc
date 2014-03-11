@@ -34,7 +34,7 @@ my ($opt,$usage)=describe_options("%c  %o",
 print($usage->text), exit if $opt->help;
 
 my $action=$opt->action;
-my $block=$opt->block || '';
+my $block=$opt->block || 'all';
 my $ip=$opt->ip || '';
 my $ipcount=$opt->count || 0;
 my $note=$opt->note || '';
@@ -51,16 +51,19 @@ sub addalloc{
 }
 
 sub listallocs{
-	unless ($block){
-		print "Error: No block reference provided.\n";
-		exit;
+	my $headingtext='';
+	if ($block eq 'all'){
+		$headingtext='Allocations in all IP blocks';
 	}
 	my ($ipblock,%allocs)=getAllocationInfo($block);
 	my $family=4;
 	if (is_ipv6_cidr($ipblock)){
 		$family=6;
 	}
-	my $table = Text::ASCIITable->new({ headingText => "Allocations in IPv$family Block $ipblock" });
+	if ($block ne 'all'){
+		$headingtext="Allocations in IPv$family Block $ipblock";
+	}
+	my $table = Text::ASCIITable->new({ headingText => "$headingtext" });
 	$table->setCols('Alloc ID','Range','IP Count','Used (%)','Free (%)','Notes');
 	foreach my $thisalloc (sort keys %allocs){
 		my $firstip=$allocs{$thisalloc}{firstip};
