@@ -59,7 +59,7 @@ sub listallocs{
 	my $key=(keys %allocations)[0];
 	my $family=4;
 	if (scalar keys %allocations==1){
-		if (is_ipv6_cidr($allocations{$key}{ipfamily})){
+		if (is_ipv6_cidr($allocations{$key}{ipblockfamily})){
 			$family=6;
 		}
 	}
