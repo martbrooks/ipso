@@ -159,4 +159,3 @@ sub is_ipv6_cidr{
 }
 
 1;
-
