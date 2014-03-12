@@ -66,7 +66,7 @@ sub listallocs{
 		$headingtext="Allocations in IPv$family Block $allocations{$key}{ipblock}";
 	}
 	my $table = Text::ASCIITable->new({ headingText => "$headingtext" });
-	$table->setCols('Alloc ID','Range','IP Count','Used (%)','Free (%)','Notes');
+	$table->setCols('ID','Range','IP Count','Used (%)','Free (%)','Notes');
 	foreach my $record (sort keys %allocations){
 		my $firstip=$allocations{$record}{firstip};
 		my $lastip=$allocations{$record}{lastip};
