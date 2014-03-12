@@ -12,13 +12,12 @@ use Switch;
 my ($opt,$usage)=describe_options("%c  %o",
 	['Action:'],
 		["action"=>hidden=>{one_of=>[
-			[ "add|a"    => "Add an allocation to a network block."],
-			[ "list|l"   => "List allocations within a network block."],
-			[ "delete|d" => "Delete an allocation."],
+			[ "add|a=s"    => "Add an allocation to a network block."],
+			[ "list|l"     => "List allocations within a network block."],
+			[ "delete|d=s" => "Delete an allocation."],
 		]}],
 	[],
 	['Parameters:'],
-		['block|b=s'  => 'Network block or ID to allocate in.'],
 		['ip|i=s'     => 'First IP of the allocation.'],
 		['count|c=n'  => 'Size in IPs of the allocation.'],
 		['note|n=s'   => 'Some descriptive text for the allocation.'],
@@ -34,15 +33,15 @@ my ($opt,$usage)=describe_options("%c  %o",
 print($usage->text), exit if $opt->help;
 
 my $action=$opt->action;
-my $block=$opt->block || 'all';
+my $block;
 my $ip=$opt->ip || '';
 my $ipcount=$opt->count || 0;
 my $note=$opt->note || '';
 
 switch ($action){
-	case 'add'    { addalloc();    }
-	case 'list'   { listallocs();  }
-	case 'delete' { deletealloc(); }
+	case 'add'    { $block=$opt->add;           addalloc();    }
+	case 'list'   { $block=$opt->list || 'all'; listallocs();  }
+	case 'delete' { $block=$opt->delete;        deletealloc(); }
 	default       { print "Error: Unknown or no action requested.\n"; exit; }
 }
 

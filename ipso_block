@@ -12,35 +12,35 @@ use Switch;
 my ($opt,$usage)=describe_options("%c  %o",
 	['Action:'],
 		["action"=>hidden=>{one_of=>[
-			[ "add|a"    => "Add an IPv4 or IPv6 network block."],
+			[ "add|a=s"    => "Add an IPv4 or IPv6 network block."],
 			[ "list|l"   => "List network blocks present."],
-			[ "delete|d" => "Delete a network block."],
+			[ "delete|d=s" => "Delete a network block."],
 		]}],
 	[],
 	['Parameters:'],
-		['block|b=s' => 'An IPv4 or IPv6 network block in CIDR format.'],
 		['note|n=s'  => 'Some descriptive text for the block.'],
 	[],
 	['Other:'],
 		['help|h' => 'Print help and usage.'],
 	[],
 	['Examples:'],
-		["$0 -a -b 192.168.0.0/16 -n 'Some RFC1918 space.'"],
-		["$0 --add --block dead:beef::/64 --note 'An IPv6 block.'"],
+		["$0 -a 192.168.0.0/16 -n 'Some RFC1918 space.'"],
+		["$0 --add dead:beef::/64 --note 'An IPv6 block.'"],
 		["$0 -l"],
+		["$0 -d dead:beef::/64"],
 	[],
 );
 
 print($usage->text), exit if $opt->help;
 
 my $action=$opt->action;
-my $block=$opt->block || '';
 my $note=$opt->note || '';
+my $block;
 
 switch ($action){
-	case 'add'    { addblock();    }
-	case 'list'   { listblocks();  }
-	case 'delete' { deleteblock(); }
+	case 'add'    { $block=$opt->add;    addblock();    }
+	case 'list'   {                      listblocks();  }
+	case 'delete' { $block=$opt->delete; deleteblock(); }
 	default       { print "Error: Unknown or no action requested.\n"; exit; }
 }
 
