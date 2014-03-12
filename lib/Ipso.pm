@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use DBD::Pg;
 use Data::Dumper;
+use IO::Prompt;
 use Switch;
 use Regexp::Common qw /net/;
 use Regexp::Common::net::CIDR ();
@@ -87,6 +88,16 @@ sub getAllocationInfo{
 		exit;
 	}
 	return %allocations;
+}
+
+sub are_you_sure{
+	my $info=shift || '';
+	if ($info){
+		print "$info";
+	}
+	my $response=prompt("Are you sure (y/n)? ", -yn);
+	$response=lc(substr($response,0,1));
+	return $response eq 'y'?1:0;
 }
 
 sub is_ipv4_address{

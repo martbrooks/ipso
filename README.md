@@ -26,6 +26,7 @@ If you're using Debian or Ubuntu, install the following packages:
 
     libdbd-pg-perl
     libgetopt-long-descriptive-perl
+    libio-prompt-perl
     libnetaddr-ip-perl
     libregexp-common-net-cidr-perl
     libregexp-common-perl
