@@ -75,7 +75,7 @@ sub listallocs{
 		my $ipcount=$allocations{$record}{ipcount};
 		my $used=$allocations{$record}{used};
 		$note=$allocations{$record}{note};
-		my $age=ago($allocations{$record}{age});
+		my $age=ago($allocations{$record}{age},1);
 		my $free=$ipcount-$used;
 		my $usedpcent='0';
 		if ($used!=0){
