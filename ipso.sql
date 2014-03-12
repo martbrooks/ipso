@@ -100,7 +100,7 @@ CREATE TRIGGER hosts_changed BEFORE INSERT OR UPDATE OF ip,hostname,note ON host
 
 CREATE OR REPLACE VIEW ipblock_allocations AS
 	SELECT ipallocations.blockid, ipallocations.allocid, ipblocks.ipblock, ipblocks.ipblockfamily, ipallocations.firstip, ipallocations.firstip + ipallocations.ipcount AS lastip,
-	ipallocations.ipcount,(SELECT COUNT(ip) FROM hosts WHERE hosts.allocid=ipallocations.allocid) AS used,ipallocations.note
+	ipallocations.ipcount,(SELECT COUNT(ip) FROM hosts WHERE hosts.allocid=ipallocations.allocid) AS used,ipallocations.note,EXTRACT(EPOCH FROM now()-ipallocations.changed) AS AGE
 	FROM ipblocks,ipallocations,hosts
 	WHERE ipallocations.blockid = ipblocks.blockid
 	GROUP BY ipallocations.allocid,ipblocks.ipblock,ipblocks.ipblockfamily

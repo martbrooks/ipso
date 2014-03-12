@@ -8,12 +8,13 @@ use Text::ASCIITable;
 use Data::Dumper;
 use Getopt::Long::Descriptive;
 use Switch;
+use Time::Duration;
 
 my ($opt,$usage)=describe_options("%c  %o",
 	['Action:'],
 		["action"=>hidden=>{one_of=>[
 			[ "add|a=s"    => "Add an allocation to a network block."],
-			[ "list|l"     => "List allocations within a network block."],
+			[ "list|l:s"   => "List allocations within a network block."],
 			[ "delete|d=s" => "Delete an allocation."],
 		]}],
 	[],
@@ -39,9 +40,9 @@ my $ipcount=$opt->count || 0;
 my $note=$opt->note || '';
 
 switch ($action){
-	case 'add'    { $block=$opt->add;           addalloc();    }
-	case 'list'   { $block=$opt->list || 'all'; listallocs();  }
-	case 'delete' { $block=$opt->delete;        deletealloc(); }
+	case 'add'    { $block=$opt->add;     addalloc();    }
+	case 'list'   { $block=$opt->list;    listallocs();  }
+	case 'delete' { $block=$opt->delete;  deletealloc(); }
 	default       { print "Error: Unknown or no action requested.\n"; exit; }
 }
 
@@ -51,7 +52,8 @@ sub addalloc{
 
 sub listallocs{
 	my $headingtext='';
-	if ($block eq 'all'){
+	if ($block eq ''){
+		$block='all';
 		$headingtext='Allocations in all IP blocks';
 	}
 	my %allocations=getAllocationInfo($block);
@@ -66,20 +68,21 @@ sub listallocs{
 		$headingtext="Allocations in IPv$family Block $allocations{$key}{ipblock}";
 	}
 	my $table = Text::ASCIITable->new({ headingText => "$headingtext" });
-	$table->setCols('ID','Range','IP Count','Used (%)','Free (%)','Notes');
+	$table->setCols('ID','Range','IP Count','Used (%)','Free (%)','Notes','Last changed about...');
 	foreach my $record (sort keys %allocations){
 		my $firstip=$allocations{$record}{firstip};
 		my $lastip=$allocations{$record}{lastip};
 		my $ipcount=$allocations{$record}{ipcount};
 		my $used=$allocations{$record}{used};
 		$note=$allocations{$record}{note};
+		my $age=ago($allocations{$record}{age});
 		my $free=$ipcount-$used;
 		my $usedpcent='0';
 		if ($used!=0){
 			$usedpcent=sprintf("%.3g",$used/$ipcount*100);
 		}
 		my $freepcent=sprintf("%.3g",100-$usedpcent);
-		$table->addRow($record,"$firstip - $lastip",$ipcount,"$used ($usedpcent%)","$free ($freepcent%)",$note);
+		$table->addRow($record,"$firstip - $lastip",$ipcount,"$used ($usedpcent%)","$free ($freepcent%)",$note,$age);
 	}
 	print $table;
 }

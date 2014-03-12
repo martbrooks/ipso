@@ -89,7 +89,7 @@ sub deleteIPBlock{
 sub getAllocationInfo{
 	my %allocinfo=();
 	my $block=shift;
-	my $sql='SELECT allocid,ipblock,ipblockfamily,firstip,lastip,ipcount,used,note FROM ipblock_allocations';
+	my $sql='SELECT allocid,ipblock,ipblockfamily,firstip,lastip,ipcount,used,note,age FROM ipblock_allocations';
 	if (is_ipv4_cidr($block) || is_ipv6_cidr($block)){
 		$sql.=" WHERE ipblock = '$block'";
 	} elsif ($block ne 'all'){
@@ -97,11 +97,11 @@ sub getAllocationInfo{
 	}
 	my $dbh=dbconnect();
 	my %allocations=fetchrows($dbh,$sql,1);
-	$dbh->disconnect;
 	if (scalar keys %allocations == 0){
 		print "No allocations found.\n";
 		exit;
 	}
+	$dbh->disconnect;
 	return %allocations;
 }
 
