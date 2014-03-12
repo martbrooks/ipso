@@ -71,6 +71,21 @@ sub addIPBlock{
 	print "Block added.\n";
 }
 
+sub deleteIPBlock{
+	exit unless are_you_sure("Deleting an IP block will remove all dependent allocations and hosts.\n");
+	my $block=shift;
+	my $sql='DELETE FROM ipblocks WHERE ';
+	if (is_ipv4_cidr($block) || is_ipv6_cidr($block)){
+		$sql.="ipblock = '$block'";
+	} else {
+		$sql.="blockid = '$block'";
+	}
+	my $dbh=dbconnect();
+	$dbh->do($sql);
+	$dbh->disconnect;
+	print "Block removed.\n";
+}
+
 sub getAllocationInfo{
 	my %allocinfo=();
 	my $block=shift;
@@ -98,6 +113,11 @@ sub are_you_sure{
 	my $response=prompt("Are you sure (y/n)? ", -yn);
 	$response=lc(substr($response,0,1));
 	return $response eq 'y'?1:0;
+}
+
+sub is_ipblock_identifier{
+	my $block=shift;
+	return $block=~/^\d+$/ || is_ipv4_cidr($block) || is_ipv6_cidr($block);
 }
 
 sub is_ipv4_address{

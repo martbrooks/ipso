@@ -45,12 +45,8 @@ switch ($action){
 }
 
 sub addblock{
-	if ($block eq ''){
-		print "Error: No network block supplied.\n";
-		exit;
-	}
-	unless (is_ipv4_cidr($block) || is_ipv6_cidr($block)){
-		print "Error: Invalid network block.\n";
+	unless (is_ipblock_identifier($block)){
+		print "Error: Invalid or no network block supplied.\n";
 		exit;
 	}
 	if ($note eq ''){
@@ -82,5 +78,9 @@ sub listblocks{
 }
 
 sub deleteblock{
-	print "Not implemented yet.\n";
+	if (is_ipblock_identifier($block)){
+		deleteIPBlock($block);
+	} else {
+		print "Error: $block is not a valid IP block identifier.\n";
+	}
 }

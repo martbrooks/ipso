@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS ipblocks (
 
 CREATE TABLE IF NOT EXISTS ipallocations (
 	allocid serial primary key,
-	blockid bigint references ipblocks (blockid) NOT NULL,
+	blockid bigint references ipblocks (blockid) ON DELETE CASCADE,
 	firstip inet NOT NULL,
 	ipcount bigint NOT NULL,
 	note varchar,
@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS ipallocations (
 
 CREATE TABLE IF NOT EXISTS hosts (
 	hostid SERIAL PRIMARY KEY,
-	blockid BIGINT REFERENCES ipblocks (blockid) NOT NULL,
-	allocid BIGINT REFERENCES ipallocations (allocid) NOT NULL,
+	blockid BIGINT REFERENCES ipblocks (blockid) ON DELETE CASCADE,
+	allocid BIGINT REFERENCES ipallocations (allocid) ON DELETE CASCADE,
 	ip INET NOT NULL,
 	hostname VARCHAR NOT NULL,
 	note VARCHAR,
