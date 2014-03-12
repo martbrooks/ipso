@@ -87,6 +87,6 @@ sub listallocs{
 	print $table;
 }
 
-sub deleteallocs{
-	print "Not yet implemented.\n";
+sub deletealloc{
+	deleteIPAllocation($block);
 }

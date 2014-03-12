@@ -105,6 +105,15 @@ sub getAllocationInfo{
 	return %allocations;
 }
 
+sub deleteIPAllocation{
+	exit unless are_you_sure("Deleting an IP allocation will remove all host IP assignments that it contains.\n");
+	my $block=shift;
+	my $dbh=dbconnect();
+	$dbh->do("DELETE FROM ipallocations WHERE allocid=$block");
+	$dbh->disconnect;
+	print "Allocation removed.\n";
+}
+
 sub are_you_sure{
 	my $info=shift || '';
 	if ($info){
