@@ -36,6 +36,43 @@ CREATE TABLE IF NOT EXISTS hosts (
 	changed timestamp with time zone default now()
 );
 
+DROP FUNCTION IF EXISTS create_ip_allocation();
+CREATE OR REPLACE FUNCTION create_ip_allocation() RETURNS TRIGGER AS
+$$
+DECLARE
+    iterator INT;
+    ip_block CIDR;
+    existing RECORD;
+BEGIN
+    IF NEW.firstip IS NULL THEN
+        RAISE EXCEPTION 'firstip cannot be null';
+    END IF;
+    IF NEW.ipcount IS NULL THEN
+        RAISE EXCEPTION 'firstip cannot be null';
+    END IF;
+
+    SELECT ipblock FROM ipblocks WHERE blockid = NEW.blockid INTO ip_block;
+
+    IF NOT ip_block >> (NEW.firstip + NEW.ipcount)::INET THEN
+        RAISE EXCEPTION 'Last IP % exceeds block range %', NEW.firstip + NEW.ipcount, ip_block;
+    END IF;
+
+    FOR existing IN SELECT allocid, firstip, ipcount FROM ipallocations WHERE blockid = NEW.blockid LOOP
+        IF (TG_OP = 'UPDATE') AND existing.allocid = OLD.allocid THEN
+                -- DO NOTHING - this is the row being replaced
+        ELSE
+            FOR iterator IN 0..NEW.ipcount LOOP
+                IF existing.firstip <= (NEW.firstip + iterator)::INET AND
+                   (existing.firstip + existing.ipcount)::INET >= (NEW.firstip + iterator)::INET THEN
+                    RAISE EXCEPTION 'Range overlap: % - % overlaps existing % - %', NEW.firstip, (NEW.firstip + NEW.ipcount)::INET, existing.firstip, (existing.firstip + existing.ipcount)::INET;
+                END IF;
+            END LOOP;
+        END IF;
+    END LOOP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 DROP FUNCTION IF EXISTS update_ip_block_family();
 CREATE FUNCTION update_ip_block_family() RETURNS TRIGGER AS
 $$ 
@@ -53,6 +90,8 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_ipallocations_ranges BEFORE INSERT OR UPDATE OF firstip, ipcount ON ipallocations FOR EACH ROW EXECUTE PROCEDURE create_ip_allocation();
 
 CREATE TRIGGER trigger_ipblocks_family BEFORE INSERT OR UPDATE OF ipblock ON ipblocks FOR EACH ROW EXECUTE PROCEDURE update_ip_block_family();
 CREATE TRIGGER ipblocks_changed BEFORE INSERT OR UPDATE OF ipblock,note ON ipblocks FOR EACH ROW EXECUTE PROCEDURE update_last_changed();
