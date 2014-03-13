@@ -119,6 +119,7 @@ sub addIPAllocation{
 	my %blockinfo=getBlockInfo();
 	my $dbh=dbconnect();
 	$dbh->begin_work;
+	$dbh->do('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
 	my %tmp=fetchrows($dbh,"SELECT blockid FROM ipblocks WHERE '$firstip' << ipblock",1);
 	if (scalar keys %tmp!=1){
 		print "Error: No unique block identified to contain $firstip.\n";
