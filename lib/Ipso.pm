@@ -114,6 +114,49 @@ sub deleteIPAllocation{
 	print "Allocation removed.\n";
 }
 
+sub addIPAllocation{
+	my ($firstip,$ipcount,$note)=@_;
+	my %blockinfo=getBlockInfo();
+	my $dbh=dbconnect();
+	$dbh->begin_work;
+	my %tmp=fetchrows($dbh,"SELECT blockid FROM ipblocks WHERE '$firstip' << ipblock",1);
+	if (scalar keys %tmp!=1){
+		print "Error: No unique block identified to contain $firstip.\n";
+	}
+	my $tmpkey=(keys %tmp)[0];
+	my $blockid=$tmp{$tmpkey}{blockid};
+	my %allocinfo=getAllocationInfo($blockid);
+	$dbh->do('CREATE TEMPORARY TABLE range_overlaps (id BIGINT DEFAULT NULL,existing INET DEFAULT NULL,proposed INET DEFAULT NULL)');
+	$dbh->do('CREATE INDEX idx_existing ON range_overlaps(existing)');
+	$dbh->do('CREATE INDEX idx_proposed ON range_overlaps(proposed)');
+	foreach my $thisalloc (keys %allocinfo){
+		my $allocid=$allocinfo{$thisalloc}{allocid};
+		my $start=$allocinfo{$thisalloc}{firstip};
+		my $count=$allocinfo{$thisalloc}{ipcount};
+		for (my $i=0;$i<=$count;$i++){
+			$dbh->do("INSERT INTO range_overlaps (id,existing) VALUES ($allocid,'$start'::inet+$i)");
+		}
+	}
+	for (my $i=0;$i<$ipcount;$i++){
+		$dbh->do("INSERT INTO range_overlaps (proposed) VALUES ('$firstip'::inet+$i)");
+	}
+	$dbh->do('ANALYZE range_overlaps');
+	my %overlaps=fetchrows($dbh,'SELECT DISTINCT (a.id) from range_overlaps AS a,range_overlaps AS b WHERE a.existing=b.proposed',1);
+	if (scalar keys %overlaps>0){
+		print "Error: Requested range overlaps existing allocations: ";
+		my @ranges=();
+		foreach my $overlap (keys %overlaps){
+			push @ranges,"$allocinfo{$overlap}{firstip}-$allocinfo{$overlap}{lastip}";
+		}
+		print join (", ",@ranges) . "\n";
+	} else {
+		$dbh->do("INSERT INTO ipallocations (blockid,firstip,ipcount,note) VALUES ($blockid,'$firstip',$ipcount,'$note')");
+		$dbh->commit;
+		print "IP allocation added.\n";
+	}
+	$dbh->disconnect;
+}
+
 sub are_you_sure{
 	my $info=shift || '';
 	if ($info){

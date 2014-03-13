@@ -19,7 +19,6 @@ my ($opt,$usage)=describe_options("%c  %o",
 		]}],
 	[],
 	['Parameters:'],
-		['ip|i=s'     => 'First IP of the allocation.'],
 		['count|c=n'  => 'Size in IPs of the allocation.'],
 		['note|n=s'   => 'Some descriptive text for the allocation.'],
 	[],
@@ -27,6 +26,7 @@ my ($opt,$usage)=describe_options("%c  %o",
 		['help|h' => 'Print help and usage.'],
 	[],
 	['Examples:'],
+		["$0 -a 192.168.23.19 -c 100 -n 'Squobbly Sweets'"],
 		["$0 -l"],
 	[],
 );
@@ -35,7 +35,6 @@ print($usage->text), exit if $opt->help;
 
 my $action=$opt->action;
 my $block;
-my $ip=$opt->ip || '';
 my $ipcount=$opt->count || 0;
 my $note=$opt->note || '';
 
@@ -47,7 +46,15 @@ switch ($action){
 }
 
 sub addalloc{
-	print "Not yet implemented.\n";
+	unless (is_ipv4_address($block) || is_ipv6_address){
+		print "Error: $block is not a valid IPv4/6 address.\n";
+		exit;
+	}
+	if ($note eq ''){
+		print "Error: No allocation note supplied.\n";
+		exit;
+	}
+	addIPAllocation($block,$ipcount,$note);
 }
 
 sub listallocs{
