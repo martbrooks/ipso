@@ -46,7 +46,7 @@ switch ($action){
 }
 
 sub addalloc{
-	unless (is_ipv4_address($block) || is_ipv6_address){
+	unless (is_ipv4_address($block) || is_ipv6_address($block)){
 		print "Error: $block is not a valid IPv4/6 address.\n";
 		exit;
 	}

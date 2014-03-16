@@ -12,9 +12,10 @@ use Switch;
 my ($opt,$usage)=describe_options("%c  %o",
 	['Action:'],
 		["action"=>hidden=>{one_of=>[
-			[ "add|a=s"    => "Add an IPv4 or IPv6 network block."],
-			[ "list|l"   => "List network blocks present."],
-			[ "delete|d=s" => "Delete a network block."],
+			["add|a=s"    => "Add an IPv4 or IPv6 network block."],
+			["list|l"     => "List network blocks present."],
+			["delete|d=s" => "Delete a network block."],
+			["map|m=s"    => "Map IP allocations in a network block."],
 		]}],
 	[],
 	['Parameters:'],
@@ -41,6 +42,7 @@ switch ($action){
 	case 'add'    { $block=$opt->add;    addblock();    }
 	case 'list'   {                      listblocks();  }
 	case 'delete' { $block=$opt->delete; deleteblock(); }
+	case 'map'    { $block=$opt->map;    mapblock();    }
 	default       { print "Error: Unknown or no action requested.\n"; exit; }
 }
 
@@ -78,9 +80,17 @@ sub listblocks{
 }
 
 sub deleteblock{
-	if (is_ipblock_identifier($block)){
-		deleteIPBlock($block);
-	} else {
+	unless (is_ipblock_identifier($block)){
 		print "Error: $block is not a valid IP block identifier.\n";
+		exit;
 	}
+	deleteIPBlock($block);
+}
+
+sub mapblock{
+	unless (is_ipblock_identifier($block)){
+		print "Error: $block is not a valid IP block identifier.\n";
+		exit;
+	}
+	mapIPBlock($block);
 }

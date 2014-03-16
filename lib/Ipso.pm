@@ -21,7 +21,15 @@ sub dbconnect{
 	return $dbh;
 }
 
-sub fetchrows{
+sub fetchrows_as_array{
+	my ($dbh,$sql)=@_;
+	my $sth = $dbh->prepare("$sql");
+	$sth->execute;
+	my $tmp=$sth->fetchrow_array();
+	return $tmp;
+}
+
+sub fetchrows_as_hash{
 	my ($dbh,$sql,$key)=@_;
 	my $sth = $dbh->prepare("$sql");
 	$sth->execute;
@@ -31,7 +39,7 @@ sub fetchrows{
 
 sub getBlockInfo{
 	my $dbh=dbconnect();
-	my %ipblocks=fetchrows($dbh,'SELECT blockid,ipblock,ipblockfamily,note,EXTRACT(EPOCH FROM now()-changed) as age FROM ipblocks',1);
+	my %ipblocks=fetchrows_as_hash($dbh,'SELECT blockid,ipblock,ipblockfamily,note,EXTRACT(EPOCH FROM now()-changed) as age FROM ipblocks',1);
 	foreach my $record (keys %ipblocks){
 		my ($block,$mask)=split/\//,$ipblocks{$record}{ipblock};
 		switch ($ipblocks{$record}{ipblockfamily}) {
@@ -39,7 +47,7 @@ sub getBlockInfo{
 			case 6 { $ipblocks{$record}{maxips}=2**(128-$mask); }
 		}
 	}
-	my %ipallocations=fetchrows($dbh,'SELECT ipblocks.blockid,COUNT(ipcount) AS allocations,SUM(ipcount) AS allocated FROM ipblocks,ipallocations WHERE ipblocks.blockid=ipallocations.blockid GROUP BY ipblocks.blockid',1);
+	my %ipallocations=fetchrows_as_hash($dbh,'SELECT ipblocks.blockid,COUNT(ipcount) AS allocations,SUM(ipcount) AS allocated FROM ipblocks,ipallocations WHERE ipblocks.blockid=ipallocations.blockid GROUP BY ipblocks.blockid',1);
 	foreach my $record (keys %ipallocations){
 		my $blockid=$ipallocations{$record}{blockid};
 		$ipblocks{$blockid}{allocations}=$ipallocations{$record}{allocations};
@@ -52,7 +60,7 @@ sub getBlockInfo{
 sub addIPBlock{
 	my ($newblock,$note)=@_;
 	my $dbh=dbconnect();
-	my %overlap=fetchrows($dbh,"SELECT ipblock FROM ipblocks WHERE '$newblock' <<= ipblock OR '$newblock' >>= ipblock",1);
+	my %overlap=fetchrows_as_hash($dbh,"SELECT ipblock FROM ipblocks WHERE '$newblock' <<= ipblock OR '$newblock' >>= ipblock",1);
 	my @overlaps=();
 	foreach my $ipblock (keys %overlap){
 		push @overlaps,$ipblock;
@@ -86,6 +94,26 @@ sub deleteIPBlock{
 	print "Block removed.\n";
 }
 
+sub mapIPBlock{
+	my $blockid=shift;
+	my $dbh=dbconnect();
+	my %allocs=fetchrows_as_hash($dbh,"SELECT row_number() OVER (ORDER BY firstip) AS id,ipblock,(firstip-1)::inet AS previp,firstip,lastip,COALESCE((lag(lastip+1) over (order by lastip)),host(ipblock)::inet) as lastlastip,COALESCE((firstip-(LAG(lastip) OVER (ORDER BY firstip))::inet-1),(firstip-ipblock)) AS gap,ipcount,used,note FROM ipblock_allocations WHERE blockid=$blockid ORDER BY firstip",1);
+
+	foreach my $thisalloc (sort keys %allocs){
+		my $firstip=$allocs{$thisalloc}{firstip};
+		my $lastip=$allocs{$thisalloc}{lastip};
+		my $gap=$allocs{$thisalloc}{gap};
+		my $lastlastip=$allocs{$thisalloc}{lastlastip};
+		my $previp=$allocs{$thisalloc}{previp};
+		my $ipcount=$allocs{$thisalloc}{ipcount};
+		if ($gap!=0){
+			print "GAP : ";
+			print "$lastlastip -> $previp: $gap\n";
+		}
+		print "RANGE : $firstip -> $lastip: $ipcount\n";
+	}
+}
+
 sub getAllocationInfo{
 	my %allocinfo=();
 	my $block=shift;
@@ -96,7 +124,7 @@ sub getAllocationInfo{
 		$sql.=" WHERE blockid = '$block'";
 	}
 	my $dbh=dbconnect();
-	my %allocations=fetchrows($dbh,$sql,1);
+	my %allocations=fetchrows_as_hash($dbh,$sql,1);
 	if (scalar keys %allocations == 0){
 		print "No allocations found.\n";
 		exit;
@@ -120,7 +148,7 @@ sub addIPAllocation{
 	my $dbh=dbconnect();
 	$dbh->begin_work;
 	$dbh->do('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
-	my %tmp=fetchrows($dbh,"SELECT blockid FROM ipblocks WHERE '$firstip' << ipblock",1);
+	my %tmp=fetchrows_as_hash($dbh,"SELECT blockid FROM ipblocks WHERE '$firstip' << ipblock",1);
 	if (scalar keys %tmp!=1){
 		print "Error: No unique block identified to contain $firstip.\n";
 	}
@@ -142,7 +170,7 @@ sub addIPAllocation{
 		$dbh->do("INSERT INTO range_overlaps (proposed) VALUES ('$firstip'::inet+$i)");
 	}
 	$dbh->do('ANALYZE range_overlaps');
-	my %overlaps=fetchrows($dbh,'SELECT DISTINCT (a.id) from range_overlaps AS a,range_overlaps AS b WHERE a.existing=b.proposed',1);
+	my %overlaps=fetchrows_as_hash($dbh,'SELECT DISTINCT (a.id) from range_overlaps AS a,range_overlaps AS b WHERE a.existing=b.proposed',1);
 	if (scalar keys %overlaps>0){
 		print "Error: Requested range overlaps existing allocations: ";
 		my @ranges=();
