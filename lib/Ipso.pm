@@ -91,6 +91,8 @@ sub mapIPBlock{
 	my $dbh=dbconnect();
 	my $block='';
 	my $topip='';
+	my %map=();
+	my $n=1;
 	my %allocs=fetchrows_as_hash($dbh,"SELECT row_number() OVER (ORDER BY firstip) AS id,ipblock,(firstip-1)::inet AS previp,firstip,lastip,COALESCE((lag(lastip+1) over (order by lastip)),host(ipblock)::inet) as lastlastip,COALESCE((firstip-(LAG(lastip) OVER (ORDER BY firstip))::inet-1),(firstip-ipblock)) AS gap,ipcount,used,note FROM ipblock_allocations WHERE blockid=$blockid ORDER BY firstip",1);
 
 	foreach my $thisalloc (sort keys %allocs){
@@ -100,16 +102,31 @@ sub mapIPBlock{
 		my $lastlastip=$allocs{$thisalloc}{lastlastip};
 		my $previp=$allocs{$thisalloc}{previp};
 		my $ipcount=$allocs{$thisalloc}{ipcount};
+		my $note=$allocs{$thisalloc}{note};
 		if ($gap!=0){
-			print "GAP : ";
-			print "$lastlastip -> $previp: $gap\n";
+			$map{$n}{firstip}=$lastlastip;
+			$map{$n}{lastip}=$previp;
+			$map{$n}{ipcount}=$gap;
+			$map{$n}{note}='Unallocated';
+			$n++;
 		}
-		print "RANGE : $firstip -> $lastip: $ipcount\n";
+		$map{$n}{firstip}=$firstip;
+		$map{$n}{lastip}=$lastip;
+		$map{$n}{ipcount}=$ipcount;
+		$map{$n}{note}=$note;
 		$block=$allocs{$thisalloc}{ipblock};
 		$topip=$lastip;
+		$n++;
 	}
 	my %tmp=fetchrows_as_hash($dbh,"SELECT 1 AS id,'$topip'::inet+1 AS nextip,host(broadcast('$block')::inet) as lastip,broadcast('$block')-'$topip'::inet AS ipcount",1);
-	print "GAP: $tmp{1}{nextip} -> $tmp{1}{lastip}: $tmp{1}{ipcount}\n";
+	if ($tmp{1}{ipcount}>0){
+		$map{$n}{firstip}=$tmp{1}{nextip};
+		$map{$n}{lastip}=$tmp{1}{lastip};
+		$map{$n}{ipcount}=$tmp{1}{ipcount};
+		$map{$n}{note}='Unallocated';
+	}
+	$dbh->disconnect;
+	return %map;
 }
 
 sub getAllocationInfo{

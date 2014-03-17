@@ -92,5 +92,15 @@ sub mapblock{
 		print "Error: $block is not a valid IP block identifier.\n";
 		exit;
 	}
-	mapIPBlock($block);
+	my %map=mapIPBlock($block);
+	my %blockinfo=getBlockInfo();
+	my $table = Text::ASCIITable->new({ headingText => "Allocations map for block $blockinfo{$block}{ipblock}" });
+	$table->setCols('Allocation Start','Allocation End','No IPs','Note');
+	$table->alignCol('Allocation Start','left');
+	$table->alignCol('Allocation End','left');
+	foreach my $chunk (sort keys %map){
+		if ($map{$chunk}{firstip} eq $map{$chunk}{lastip}){$map{$chunk}{firstip}='-';}
+		$table->addRow($map{$chunk}{firstip},$map{$chunk}{lastip},$map{$chunk}{ipcount},$map{$chunk}{note});
+	}
+	print $table;
 }
