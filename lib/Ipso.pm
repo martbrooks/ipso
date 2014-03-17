@@ -21,14 +21,6 @@ sub dbconnect{
 	return $dbh;
 }
 
-sub fetchrows_as_array{
-	my ($dbh,$sql)=@_;
-	my $sth = $dbh->prepare("$sql");
-	$sth->execute;
-	my $tmp=$sth->fetchrow_array();
-	return $tmp;
-}
-
 sub fetchrows_as_hash{
 	my ($dbh,$sql,$key)=@_;
 	my $sth = $dbh->prepare("$sql");
@@ -97,6 +89,8 @@ sub deleteIPBlock{
 sub mapIPBlock{
 	my $blockid=shift;
 	my $dbh=dbconnect();
+	my $block='';
+	my $topip='';
 	my %allocs=fetchrows_as_hash($dbh,"SELECT row_number() OVER (ORDER BY firstip) AS id,ipblock,(firstip-1)::inet AS previp,firstip,lastip,COALESCE((lag(lastip+1) over (order by lastip)),host(ipblock)::inet) as lastlastip,COALESCE((firstip-(LAG(lastip) OVER (ORDER BY firstip))::inet-1),(firstip-ipblock)) AS gap,ipcount,used,note FROM ipblock_allocations WHERE blockid=$blockid ORDER BY firstip",1);
 
 	foreach my $thisalloc (sort keys %allocs){
@@ -111,7 +105,11 @@ sub mapIPBlock{
 			print "$lastlastip -> $previp: $gap\n";
 		}
 		print "RANGE : $firstip -> $lastip: $ipcount\n";
+		$block=$allocs{$thisalloc}{ipblock};
+		$topip=$lastip;
 	}
+	my %tmp=fetchrows_as_hash($dbh,"SELECT 1 AS id,'$topip'::inet+1 AS nextip,host(broadcast('$block')::inet) as lastip,broadcast('$block')-'$topip'::inet AS ipcount",1);
+	print "GAP: $tmp{1}{nextip} -> $tmp{1}{lastip}: $tmp{1}{ipcount}\n";
 }
 
 sub getAllocationInfo{
