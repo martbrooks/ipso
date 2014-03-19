@@ -53,6 +53,7 @@ sub addblock{
 	}
 	if ($note eq ''){
 		print "Error: No descriptive text supplied.\n";
+		exit;
 	}
 	addIPBlock($block,$note);
 }

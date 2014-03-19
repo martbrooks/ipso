@@ -4,8 +4,8 @@ use DBD::Pg;
 use Data::Dumper;
 use IO::Prompt;
 use Switch;
-use Regexp::Common qw /net/;
-use Regexp::Common::net::CIDR ();
+use Regexp::Common;
+use Regexp::Common::net::CIDR;
 use Regexp::IPv6 qw($IPv6_re);
 
 sub dbconnect{
@@ -166,6 +166,8 @@ sub addIPAllocation{
 	my %tmp=fetchrows_as_hash($dbh,"SELECT blockid FROM ipblocks WHERE '$firstip' << ipblock",1);
 	if (scalar keys %tmp!=1){
 		print "Error: No unique block identified to contain $firstip.\n";
+		$dbh->disconnect;
+		exit;
 	}
 	my $tmpkey=(keys %tmp)[0];
 	my $blockid=$tmp{$tmpkey}{blockid};
@@ -221,18 +223,19 @@ sub is_ipv4_address{
 	return $ip =~ $RE{net}{IPv4}?1:0;
 }
 
-sub is_ipv4_cidr{
-	my $cidr=shift;
-	return $cidr =~ $RE{net}{CIDR}{IPv4}?1:0;
-}
-
 sub is_ipv6_address{
 	my $ip=shift;
 	return $ip =~ $RE{net}{IPv6}?1:0;
 }
 
-# This regex taken from
+# These regexes taken from
 # http://blog.markhatton.co.uk/2011/03/15/regular-expressions-for-ip-addresses-cidr-ranges-and-hostnames/
+#
+sub is_ipv4_cidr{
+	my $cidr=shift;
+	return $cidr =~ /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$/?1:0;
+}
+
 sub is_ipv6_cidr{
 	my $cidr=shift;
 	return $cidr =~ /^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*(\/(\d|\d\d|1[0-1]\d|12[0-8]))$/?1:0;
