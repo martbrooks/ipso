@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS hosts (
 	changed timestamp with time zone default now()
 );
 
-DROP FUNCTION IF EXISTS create_ip_allocation();
+-- DROP FUNCTION IF EXISTS create_ip_allocation();
 -- CREATE OR REPLACE FUNCTION create_ip_allocation() RETURNS TRIGGER AS
 -- $$
 -- DECLARE
@@ -75,7 +75,7 @@ DROP FUNCTION IF EXISTS create_ip_allocation();
 
 DROP FUNCTION IF EXISTS update_ip_block_family();
 CREATE FUNCTION update_ip_block_family() RETURNS TRIGGER AS
-$$ 
+$$
 BEGIN
     NEW.ipblockfamily:=family(NEW.ipblock);
     RETURN NEW;
@@ -84,7 +84,7 @@ $$ LANGUAGE plpgsql;
 
 DROP FUNCTION IF EXISTS update_last_changed();
 CREATE FUNCTION update_last_changed() RETURNS TRIGGER AS
-$$ 
+$$
 BEGIN
     NEW.changed:=now();
     RETURN NEW;
@@ -105,22 +105,5 @@ CREATE OR REPLACE VIEW ipblock_allocations AS
 	WHERE ipallocations.blockid = ipblocks.blockid
 	GROUP BY ipallocations.allocid,ipblocks.ipblock,ipblocks.ipblockfamily
 	ORDER BY ipallocations.blockid ASC;
-
-INSERT INTO ipblocks (ipblock,note) VALUES ('192.168.0.0/24','Part of RFC1918');
-INSERT INTO ipblocks (ipblock,note) VALUES ('192.168.1.0/24','Part of RFC1918');
-INSERT INTO ipblocks (ipblock,note) VALUES ('10.0.0.0/8','Also part of RFC1918');
-INSERT INTO ipblocks (ipblock,note) VALUES ('2001:ba8:1f1:f12c::/64','Some IPv6');
-
-INSERT INTO ipallocations (blockid,firstip,ipcount,note) VALUES (1,'192.168.0.123',10,'ACME Widgets allocation');
-INSERT INTO ipallocations (blockid,firstip,ipcount,note) VALUES (1,'192.168.0.10',30,'ACME Traps allocation');
-INSERT INTO ipallocations (blockid,firstip,ipcount,note) VALUES (2,'192.168.1.1',10,'ACME Widgets allocation');
-INSERT INTO ipallocations (blockid,firstip,ipcount,note) VALUES (2,'192.168.1.100',30,'ACME Traps allocation');
-INSERT INTO ipallocations (blockid,firstip,ipcount,note) VALUES (3,'10.119.48.20',10,'29HC network devices');
-INSERT INTO ipallocations (blockid,firstip,ipcount,note) VALUES (4,'2001:ba8:1f1:f12c::2',100000,'ACME Traps v6 allocation');
-
-INSERT INTO hosts (blockid,allocid,ip,hostname,note) VALUES (3,5,'10.119.48.20','core-29hc','29HC core switch');
-INSERT INTO hosts (blockid,allocid,ip,hostname,note) VALUES (3,5,'10.119.48.21','office-29hc','29HC office 8 port switch');
-INSERT INTO hosts (blockid,allocid,ip,hostname,note) VALUES (3,5,'10.119.48.22','media-29hc','29HC media room 8 port switch');
-INSERT INTO hosts (blockid,allocid,ip,hostname,note) VALUES (3,5,'10.119.48.23','bedroom-29hc','29HC bedroom 8 port switch');
 
 COMMIT;
