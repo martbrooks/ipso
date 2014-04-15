@@ -67,6 +67,10 @@ sub addIPBlock{
 		exit;
 	}
 	$dbh->do("INSERT INTO ipblocks (ipblock,note) VALUES ('$newblock','$note')");
+	my $blockid = $dbh->last_insert_id(undef,undef,undef,undef,{sequence=>'ipblocks_blockid_seq'});
+	my %tmp=fetchrows_as_hash($dbh,"SELECT 1,host(network('$newblock'::inet)) as newnetwork,host(broadcast('$newblock'::inet)) as newbroadcast",1);
+	$dbh->do("INSERT INTO ipallocations (blockid,firstip,ipcount,note) VALUES ($blockid,'$tmp{1}{newnetwork}',1,'<Network address>')");
+	$dbh->do("INSERT INTO ipallocations (blockid,firstip,ipcount,note) VALUES ($blockid,'$tmp{1}{newbroadcast}',1,'<Broadcast address>')");
 	$dbh->disconnect;
 	print "Block added.\n";
 }
